@@ -1,0 +1,20 @@
+cluster.name: elk_cluster
+node.name: master
+network.host: 0.0.0.0
+discovery.type: single-node
+bootstrap.memory_lock: true
+
+# Http
+http.cors.allow-credentials: true
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+http.cors.allow-methods: OPTIONS,HEAD,GET,POST,PUT,DELETE
+http.cors.allow-headers: "*"
+
+
+# Xpack
+xpack.security.enabled: true
+xpack.security.authc.realms:
+  native.realm1:
+    order: 0
+    enabled: true

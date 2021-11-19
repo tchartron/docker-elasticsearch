@@ -1,0 +1,106 @@
+version: '3.7'
+
+services:
+  elasticsearch:
+    # image: elasticsearch:${ELK_VERSION:-7.14.2}
+    build:
+      context: .
+      dockerfile: ./elasticsearch/Dockerfile
+      args:
+        - ELK_VERSION=${ELK_VERSION:-7.14.2}
+    container_name: ${PROJECT_NAME:-elastic}_elk
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65535
+        hard: 65535
+    cap_add:
+      - IPC_LOCK
+    environment:
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      # - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-secretpassword}
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    labels:
+      - traefik.enable=true
+      # Router http
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_elastic_http_router.rule=Host(`elasticsearch.${DOMAIN:-tchartron.com}`)
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_elastic_http_router.entrypoints=http
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_elastic_http_router.middlewares=https-redirect@file
+      # Router https
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_elastic_https_router.rule=Host(`elasticsearch.${DOMAIN:-tchartron.com}`)
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_elastic_https_router.entrypoints=https
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_elastic_https_router.middlewares=https-whitelist@file
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_elastic_https_router.tls=true
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_elastic_https_router.tls.certresolver=letsencrypt
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_elastic_https_router.tls.domains[0].main=elasticsearch.${DOMAIN:-tchartron.com}
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_elastic_https_router.service=${PROJECT_NAME-elastic}_elastic_https_service
+      # Service https
+      - traefik.http.services.${PROJECT_NAME:-elastic}_elastic_https_service.loadbalancer.server.port=9200
+
+      # #TCP
+      # - traefik.tcp.routers.${PROJECT_NAME:-elastic}_elasticsearch.rule=HostSNI(`*`)
+      # - traefik.tcp.routers.${PROJECT_NAME:-elastic}_elasticsearch.entrypoints=elktcp
+      # - traefik.tcp.services.${PROJECT_NAME:-elastic}_elasticsearch.loadbalancer.server.port=9300
+    networks:
+      - default
+
+  kibana:
+    # image: kibana:${KIBANA_VERSION:-7.14.2}
+    build:
+      context: .
+      dockerfile: ./kibana/Dockerfile
+      args:
+        - KIBANA_VERSION=${KIBANA_VERSION:-7.14.2}
+    container_name: ${PROJECT_NAME:-elastic}_kibana
+    # environment:
+    #   - ELASTICSEARCH_USERNAME=${ELASTIC_PASSWORD:-elastic}
+    #   - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD:-secretpassword}
+    volumes:
+      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
+    labels:
+      - traefik.enable=true
+      # Middlewares
+      # - traefik.http.middlewares.${PROJECT_NAME:-elastic}_https_middleware.redirectscheme.scheme=https
+      # - traefik.http.middlewares.${PROJECT_NAME:-elastic}_https_middleware.redirectscheme.permanent=true
+      # - traefik.http.middlewares.${PROJECT_NAME:-elastic}_whitelist.ipwhitelist.sourcerange=127.0.0.1/32,.../32
+      # Router http
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_kibana_http_router.rule=Host(`kibana.${DOMAIN:-tchartron.com}`)
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_kibana_http_router.entrypoints=http
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_kibana_http_router.middlewares=https-redirect@file
+      # - traefik.http.routers.${PROJECT_NAME:-elastic}_kibana_http_router.service=${PROJECT_NAME-elastic}_kibana_http_service
+      # Service http
+      # - traefik.http.services.${PROJECT_NAME:-elastic}_kibana_http_service.loadbalancer.server.port=80
+      # Router https
+      # - traefik.http.middlewares.${PROJECT_NAME:-elastic}_kibana_basic_auth.basicauth.users=admin:htpasswdhashedpassword
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_kibana_https_router.rule=Host(`kibana.${DOMAIN:-tchartron.com}`)
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_kibana_https_router.entrypoints=https
+      # - traefik.http.routers.${PROJECT_NAME:-elastic}_kibana_https_router.middlewares=${PROJECT_NAME:-elastic}_kibana_basic_auth
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_kibana_https_router.middlewares=https-whitelist@file
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_kibana_https_router.tls=true
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_kibana_https_router.tls.certresolver=letsencrypt
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_kibana_https_router.tls.domains[0].main=kibana.${DOMAIN:-tchartron.com}
+      - traefik.http.routers.${PROJECT_NAME:-elastic}_kibana_https_router.service=${PROJECT_NAME-elastic}_kibana_https_service
+      # Service https
+      - traefik.http.services.${PROJECT_NAME:-elastic}_kibana_https_service.loadbalancer.server.port=5601
+    depends_on:
+      - elasticsearch
+    networks:
+      - default
+
+networks:
+  default:
+    name: ${NETWORK_PREFIX:-elastic}_network
+    driver: bridge
+    external: true
+
+#we using bind mounts
+volumes:
+  elasticsearch_data:
+    driver: local
+    # external: true
+
+# IMPORTANT : Start the stack then run this to generate passwords and update kibana.yml password for kibana_system user then restart the stack to allow kiban to connect to elk
+# docker exec elastic_elk /bin/bash -c "bin/elasticsearch-setup-passwords auto --batch --url http://elasticsearch:9200"

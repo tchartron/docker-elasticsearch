@@ -1,0 +1,9 @@
+server.name: kibana
+server.host: 0.0.0.0
+elasticsearch.hosts: [ "http://elasticsearch:9200" ]
+monitoring.ui.container.elasticsearch.enabled: true
+server.publicBaseUrl: "https://kibana.tchartron.com"
+
+## X-Pack security credentials
+elasticsearch.username: kibana_system
+elasticsearch.password: kibanapassword #Update this after runing the docker exec elastic_elk /bin/bash -c "bin/elasticsearch-setup-passwords auto --batch --url http://elasticsearch:9200" command
