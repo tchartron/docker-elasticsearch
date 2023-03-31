@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: ./elasticsearch/Dockerfile
       args:
-        - ELK_VERSION=${ELK_VERSION:-7.14.2}
+        - ELASTICSEARCH_VERSION=${ELASTICSEARCH_VERSION:-7.14.2}
     container_name: ${PROJECT_NAME:-elastic}_elk
     ulimits:
       memlock:
