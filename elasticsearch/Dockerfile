@@ -1,7 +1,7 @@
-ARG ELK_VERSION
+ARG ELASTICSEARCH_VERSION
 
 # FROM docker.elastic.co/elasticsearch/elasticsearch:${ELK_VERSION}
-FROM elasticsearch:${ELK_VERSION:-7.14.2}
+FROM elasticsearch:${ELASTICSEARCH_VERSION:-7.14.2}
 
 COPY ./elasticsearch/elasticsearch.yml /usr/share/elasticsearch/config/elasticsearch.yml
 # COPY ./elasticsearch/elasticsearch.yml /usr/share/elasticsearch/config/jvm.options
