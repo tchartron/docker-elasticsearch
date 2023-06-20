@@ -17,6 +17,6 @@ cp .env.example .env
 docker-compose build
 docker network create -d bridge elastic_network
 docker-compose up -d
-docker exec elastic_network /bin/bash -c "bin/elasticsearch-setup-passwords auto --batch --url http://elasticsearch:9200"
+docker exec elastic /bin/bash -c "bin/elasticsearch-setup-passwords auto --batch --url http://elasticsearch:9200"
 # Get password for kibana_system user from stdout and edit kibana.yml accordingly then restart the docker stack
 ```
